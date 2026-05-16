@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.depdoctor-backup/
+.depdoctor-cache/
+.depdoctor-report.md
+*.js.map
+coverage/
+.env
+.depdoctor-report.pdf
+*.pdf
