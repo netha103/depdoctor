@@ -30,11 +30,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lpnethaji/depdoctor.git"
+    "url": "git+https://github.com/netha103/depdoctor.git"
   },
-  "homepage": "https://github.com/lpnethaji/depdoctor#readme",
+  "homepage": "https://github.com/netha103/depdoctor#readme",
   "bugs": {
-    "url": "https://github.com/lpnethaji/depdoctor/issues"
+    "url": "https://github.com/netha103/depdoctor/issues"
   },
   "dependencies": {
     "@babel/parser": "^7.23.0",
