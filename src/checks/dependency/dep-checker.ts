@@ -106,6 +106,52 @@ function readPackageJson(projectRoot: string): PackageJson | null {
 }
 
 /**
+ * Collect packages that are peerDependencies of any installed direct dependency.
+ * e.g. react-dom is a peer dep of @mui/material, so don't flag it as unused.
+ */
+function collectInstalledPeerDeps(projectRoot: string, pkg: PackageJson): Set<string> {
+  const peers = new Set<string>();
+  const nodeModulesDir = path.join(projectRoot, 'node_modules');
+  const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+
+  for (const depName of Object.keys(allDeps)) {
+    const depPkgPath = path.join(nodeModulesDir, depName, 'package.json');
+    try {
+      const raw = fs.readFileSync(depPkgPath, 'utf-8');
+      const depPkg = JSON.parse(raw) as { peerDependencies?: Record<string, string> };
+      for (const peer of Object.keys(depPkg.peerDependencies ?? {})) {
+        peers.add(peer);
+      }
+    } catch {
+      // not installed or missing package.json — skip
+    }
+  }
+
+  return peers;
+}
+
+/**
+ * Collect package names referenced in package.json scripts.
+ * Catches CLI tools like next-sitemap, dep-health-cli used via npm/yarn scripts.
+ */
+function collectScriptReferencedPackages(pkg: PackageJson): Set<string> {
+  const referenced = new Set<string>();
+  const scripts = (pkg as unknown as Record<string, unknown>)['scripts'];
+  if (scripts === null || typeof scripts !== 'object') return referenced;
+
+  for (const script of Object.values(scripts as Record<string, string>)) {
+    if (typeof script !== 'string') continue;
+    // Match bare package names and scoped packages in script strings
+    const matches = script.matchAll(/(?:npx\s+|yarn\s+|pnpm\s+exec\s+)?(@?[\w-]+(?:\/[\w-]+)?)/g);
+    for (const [, name] of matches) {
+      if (name !== undefined && name.length > 1) referenced.add(name);
+    }
+  }
+
+  return referenced;
+}
+
+/**
  * Returns true when a package name should be excluded from unused-dep checks
  * because it is a build / toolchain package consumed implicitly.
  */
@@ -167,6 +213,8 @@ export function checkDependencies(
   const importedPackages = collectImportedPackages(parsedFiles);
   const peerDeps = new Set(Object.keys(pkg.peerDependencies ?? {}));
   const optionalDeps = new Set(Object.keys(pkg.optionalDependencies ?? {}));
+  const installedPeerDeps = collectInstalledPeerDeps(projectRoot, pkg);
+  const scriptPackages = collectScriptReferencedPackages(pkg);
 
   const combinedIgnore: string[] = [
     ...config.ignoreDependencies,
@@ -182,6 +230,8 @@ export function checkDependencies(
     if (isIndirectPackage(name)) continue;
     if (isIgnored(name, combinedIgnore)) continue;
     if (importedPackages.has(name)) continue;
+    if (installedPeerDeps.has(name)) continue;
+    if (scriptPackages.has(name)) continue;
 
     issues.push({
       type: 'unused',
@@ -199,6 +249,8 @@ export function checkDependencies(
       if (isIndirectPackage(name)) continue;
       if (isIgnored(name, combinedIgnore)) continue;
       if (importedPackages.has(name)) continue;
+      if (installedPeerDeps.has(name)) continue;
+      if (scriptPackages.has(name)) continue;
 
       issues.push({
         type: 'unused-dev',
