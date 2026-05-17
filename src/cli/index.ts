@@ -69,7 +69,7 @@ const program = new Command();
 program
   .name('depdoctor')
   .description('Production-grade developer dependency and code health CLI')
-  .version('0.1.6');
+  .version('0.1.7');
 
 // ---------------------------------------------------------------------------
 // scan

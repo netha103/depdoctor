@@ -1,6 +1,6 @@
 {
   "name": "dep-health-cli",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Production-grade developer dependency and code health CLI",
   "main": "dist/index.js",
   "bin": {
